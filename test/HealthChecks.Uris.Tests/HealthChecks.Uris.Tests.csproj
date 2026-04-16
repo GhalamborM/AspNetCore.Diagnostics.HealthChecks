@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="RichardSzalay.MockHttp" />
+    <ProjectReference Include="..\..\src\HealthChecks.Uris\HealthChecks.Uris.csproj" />
+  </ItemGroup>
+
+</Project>

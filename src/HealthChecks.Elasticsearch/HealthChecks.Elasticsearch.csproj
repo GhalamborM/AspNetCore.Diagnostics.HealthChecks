@@ -1,13 +1,15 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <TargetFrameworks>$(NetFrameworkVersion);$(NetStandardVersion)</TargetFrameworks>
+    <TargetFrameworks>$(DefaultLibraryTargetFrameworks)</TargetFrameworks>
+    <PackageTags>$(PackageTags);Elasticsearch</PackageTags>
     <Description>HealthChecks.Elasticsearch is the health check package for Elasticsearch.</Description>
-    <PackageTags>HealthCheck;Health;Elasticsearch</PackageTags>
-    <Version>$(HealthCheckElasticsearch)</Version>
-    <PackageId>AspNetCore.HealthChecks.Elasticsearch</PackageId>
+    <VersionPrefix>$(HealthCheckElasticsearch)</VersionPrefix>
   </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="NEST" Version="$(Nest)" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="$(MicrosoftExtensionsDiagnosticsHealthChecks)" />
+    <PackageReference Include="Elastic.Clients.Elasticsearch" />
+
   </ItemGroup>
+
 </Project>

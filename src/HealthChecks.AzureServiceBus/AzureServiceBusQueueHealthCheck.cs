@@ -1,61 +1,57 @@
-﻿using Microsoft.Extensions.Diagnostics.HealthChecks;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Azure.Core;
+using HealthChecks.AzureServiceBus.Configuration;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace HealthChecks.AzureServiceBus
+namespace HealthChecks.AzureServiceBus;
+
+public class AzureServiceBusQueueHealthCheck : AzureServiceBusHealthCheck<AzureServiceBusQueueHealthCheckOptions>, IHealthCheck
 {
-    public class AzureServiceBusQueueHealthCheck : AzureServiceBusHealthCheck, IHealthCheck
+    private readonly string _queueKey;
+
+    public AzureServiceBusQueueHealthCheck(AzureServiceBusQueueHealthCheckOptions options, ServiceBusClientProvider clientProvider)
+        : base(options, clientProvider)
     {
-        private readonly string _queueName;
+        Guard.ThrowIfNull(options.QueueName, true);
 
-        public AzureServiceBusQueueHealthCheck(string connectionString, string queueName) : base(connectionString)
+        _queueKey = $"{nameof(AzureServiceBusQueueHealthCheck)}_{ConnectionKey}_{Options.QueueName}";
+    }
+
+    public AzureServiceBusQueueHealthCheck(AzureServiceBusQueueHealthCheckOptions options)
+        : this(options, new ServiceBusClientProvider())
+    { }
+
+    /// <inheritdoc />
+    public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
+    {
+        try
         {
-            if (string.IsNullOrEmpty(queueName))
-            {
-                throw new ArgumentNullException(nameof(queueName));
-            }
+            if (Options.UsePeekMode)
+                await CheckWithReceiver().ConfigureAwait(false);
+            else
+                await CheckWithManagement().ConfigureAwait(false);
 
-            _queueName = queueName;
+            return HealthCheckResult.Healthy();
+        }
+        catch (Exception ex)
+        {
+            return new HealthCheckResult(context.Registration.FailureStatus, exception: ex);
         }
 
-        public AzureServiceBusQueueHealthCheck(string endPoint, string queueName, TokenCredential tokenCredential) :
-            base(endPoint, tokenCredential)
+        async Task CheckWithReceiver()
         {
-            if (string.IsNullOrEmpty(queueName))
-            {
-                throw new ArgumentNullException(nameof(queueName));
-            }
+            var client = await ClientCache.GetOrAddAsyncDisposableAsync(ConnectionKey, _ => CreateClient()).ConfigureAwait(false);
+            var receiver = await ClientCache.GetOrAddAsyncDisposableAsync(
+                _queueKey,
+                _ => client.CreateReceiver(Options.QueueName))
+                .ConfigureAwait(false);
 
-            _queueName = queueName;
+            await receiver.PeekMessageAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
+        Task CheckWithManagement()
         {
-            try
-            {
-                if (!ManagementClientConnections.TryGetValue(ConnectionKey, out var managementClient))
-                {
-                    managementClient = CreateManagementClient();
+            var managementClient = ClientCache.GetOrAdd(ConnectionKey, _ => CreateManagementClient());
 
-                    if (!ManagementClientConnections.TryAdd(ConnectionKey, managementClient))
-                    {
-                        return new HealthCheckResult(context.Registration.FailureStatus, description: "No service bus administration client connection can't be added into dictionary.");
-                    }
-                }
-
-                _ = await managementClient.GetQueueRuntimePropertiesAsync(_queueName, cancellationToken);
-
-                return HealthCheckResult.Healthy();
-            }
-            catch (Exception ex)
-            {
-                return new HealthCheckResult(context.Registration.FailureStatus, exception: ex);
-            }
+            return managementClient.GetQueueRuntimePropertiesAsync(Options.QueueName, cancellationToken);
         }
-
-
-        protected override string ConnectionKey => $"{Prefix}_{_queueName}";
     }
 }

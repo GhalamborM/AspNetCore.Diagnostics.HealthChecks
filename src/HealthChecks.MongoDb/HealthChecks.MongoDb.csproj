@@ -1,13 +1,15 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <TargetFrameworks>$(NetFrameworkVersion);$(NetStandardVersion)</TargetFrameworks>
-    <PackageTags>HealthCheck;Health;MongoDb</PackageTags>
+    <!-- Match the TFMs of MongoDB.Driver -->
+    <TargetFrameworks>$(DefaultNetCoreApp);netstandard2.1;net472</TargetFrameworks>
+    <PackageTags>$(PackageTags);MongoDb</PackageTags>
     <Description>HealthChecks.MongoDb is the health check package for MongoDb.</Description>
-    <Version>$(HealthCheckMongoDB)</Version>
-    <PackageId>AspNetCore.HealthChecks.MongoDb</PackageId>
-  </PropertyGroup> 
+    <VersionPrefix>$(HealthCheckMongoDB)</VersionPrefix>
+  </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="MongoDB.Driver" Version="$(MongoDBDriver)" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="$(MicrosoftExtensionsDiagnosticsHealthChecks)" />
+    <PackageReference Include="MongoDB.Driver" />
   </ItemGroup>
+
 </Project>
